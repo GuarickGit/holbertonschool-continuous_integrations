@@ -42,6 +42,21 @@ git tag v1.0.1
 git push origin v1.0.1
 ```
 
+### Layer caching
+
+The build uses the GitHub Actions cache backend (`cache-from: type=gha`, `cache-to: type=gha,mode=max`). Each run starts on a fresh runner, so layers are saved to and restored from this external cache.
+
+Measured on the same commit (`a08112a`), re-running the same workflow:
+
+| Run                                                                                                                    | Cache             | `Build and push Docker image` step | Whole job |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------- | ---------------------------------- | --------- |
+| [Attempt 1](https://github.com/GuarickGit/holbertonschool-continuous_integrations/actions/runs/37911123478/attempts/1) | empty (first run) | 12 s                               | 31 s      |
+| [Attempt 2](https://github.com/GuarickGit/holbertonschool-continuous_integrations/actions/runs/37911123478/attempts/2) | warm              | 10 s                               | 30 s      |
+
+In attempt 2, the `WORKDIR`, `RUN addgroup`, `COPY package*.json` and `RUN npm install` layers are reported as `CACHED`, and only the final `COPY . .` is executed again.
+
+The gain is small (about 2 s) because this app has a single dependency: restoring layers from the remote cache costs almost as much as rebuilding them. The benefit grows with the number and weight of dependencies.
+
 ## Published image
 
 - Package page: [ghcr.io/guarickgit/holbertonschool-continuous_integrations](https://github.com/GuarickGit/holbertonschool-continuous_integrations/pkgs/container/holbertonschool-continuous_integrations)
@@ -56,3 +71,5 @@ docker pull ghcr.io/guarickgit/holbertonschool-continuous_integrations:latest
 - [Build and publish to GHCR (task 1)](https://github.com/GuarickGit/holbertonschool-continuous_integrations/actions/runs/37909300548)
 - [Branch tags from the Git context (task 2)](https://github.com/GuarickGit/holbertonschool-continuous_integrations/actions/runs/37909973162)
 - [Version tags from the Git tag `v1.0.0` (task 2)](https://github.com/GuarickGit/holbertonschool-continuous_integrations/actions/runs/37910209001)
+- [Layer cache, attempt 1: before (task 3)](https://github.com/GuarickGit/holbertonschool-continuous_integrations/actions/runs/37911123478/attempts/1)
+- [Layer cache, attempt 2: after (task 3)](https://github.com/GuarickGit/holbertonschool-continuous_integrations/actions/runs/37911123478/attempts/2)
